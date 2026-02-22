@@ -47,6 +47,10 @@ namespace LiveCaptionsTranslator
             InitializeComponent();
             DataContext = Translator.Caption;
 
+            // 设置默认只显示原字幕
+            OnlyMode = CaptionVisible.SubtitleOnly;
+
+
             Loaded += (s, e) => Translator.Caption.PropertyChanged += TranslatedChanged;
             Unloaded += (s, e) => Translator.Caption.PropertyChanged -= TranslatedChanged;
 
@@ -340,7 +344,7 @@ namespace LiveCaptionsTranslator
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 OriginalCaption.FontSize = Translator.Setting.OverlayWindow.FontSize;
-                TranslatedCaption.FontSize = (int)(OriginalCaption.FontSize * 1.25);
+                TranslatedCaption.FontSize = (int)(OriginalCaption.FontSize * 1);
             }), DispatcherPriority.Background);
         }
 
