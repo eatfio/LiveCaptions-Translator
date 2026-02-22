@@ -50,9 +50,14 @@ namespace LiveCaptionsTranslator
             // 设置默认只显示原字幕
             OnlyMode = CaptionVisible.SubtitleOnly;
 
-
-            Loaded += (s, e) => Translator.Caption.PropertyChanged += TranslatedChanged;
-            Unloaded += (s, e) => Translator.Caption.PropertyChanged -= TranslatedChanged;
+            Loaded += (s, e) =>
+            {
+                Translator.Caption.PropertyChanged += TranslatedChanged;
+            };
+            Unloaded += (s, e) =>
+            {
+                Translator.Caption.PropertyChanged -= TranslatedChanged;
+            };
 
             OriginalCaption.FontWeight = Translator.Setting.OverlayWindow.FontBold == Utils.FontBold.Both ?
                 FontWeights.Bold : FontWeights.Regular;
@@ -81,7 +86,6 @@ namespace LiveCaptionsTranslator
         private void TopThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
             double newHeight = this.Height - e.VerticalChange;
-
             if (newHeight >= this.MinHeight)
             {
                 this.Top += e.VerticalChange;
@@ -92,7 +96,6 @@ namespace LiveCaptionsTranslator
         private void BottomThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
             double newHeight = this.Height + e.VerticalChange;
-
             if (newHeight >= this.MinHeight)
             {
                 this.Height = newHeight;
@@ -102,7 +105,6 @@ namespace LiveCaptionsTranslator
         private void LeftThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
             double newWidth = this.Width - e.HorizontalChange;
-
             if (newWidth >= this.MinWidth)
             {
                 this.Left += e.HorizontalChange;
@@ -113,7 +115,6 @@ namespace LiveCaptionsTranslator
         private void RightThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
             double newWidth = this.Width + e.HorizontalChange;
-
             if (newWidth >= this.MinWidth)
             {
                 this.Width = newWidth;
@@ -253,7 +254,6 @@ namespace LiveCaptionsTranslator
             if (Translator.Setting.OverlayWindow.BackgroundColor > ColorEnum.Black)
                 Translator.Setting.OverlayWindow.BackgroundColor = ColorEnum.White;
             BorderBackground.Background = colorMap[Translator.Setting.OverlayWindow.BackgroundColor];
-
             BorderBackground.Opacity = Translator.Setting.OverlayWindow.Opacity;
             ApplyBackgroundOpacity();
         }
@@ -265,19 +265,16 @@ namespace LiveCaptionsTranslator
 
             if (onlyMode == CaptionVisible.SubtitleOnly)
             {
-                // (0) Subtitle + Translation
                 symbolIcon.Symbol = SymbolRegular.PanelBottom20;
                 OnlyMode = CaptionVisible.Both;
             }
             else if (onlyMode == CaptionVisible.Both)
             {
-                // (1) Translation Only
                 symbolIcon.Symbol = SymbolRegular.PanelTopExpand20;
                 OnlyMode = CaptionVisible.TranslationOnly;
             }
             else
             {
-                // (2) Subtitle Only
                 symbolIcon.Symbol = SymbolRegular.PanelTopContract20;
                 OnlyMode = CaptionVisible.SubtitleOnly;
             }
@@ -311,7 +308,6 @@ namespace LiveCaptionsTranslator
         {
             if (onlyMode == CaptionVisible.TranslationOnly)
             {
-                // (1) Translation Only
                 OriginalCaptionCard.Visibility = Visibility.Collapsed;
                 this.MinHeight -= StyleConsts.DELTA_OVERLAY_HEIGHT;
                 this.Height -= StyleConsts.DELTA_OVERLAY_HEIGHT;
@@ -319,20 +315,17 @@ namespace LiveCaptionsTranslator
             }
             if (onlyMode == CaptionVisible.SubtitleOnly)
             {
-                // restore
                 OriginalCaptionCard.Visibility = Visibility.Visible;
                 this.Top -= StyleConsts.DELTA_OVERLAY_HEIGHT;
                 this.Height += StyleConsts.DELTA_OVERLAY_HEIGHT;
                 this.MinHeight += StyleConsts.DELTA_OVERLAY_HEIGHT;
 
-                // (2) Subtitle Only
                 TranslatedCaptionCard.Visibility = Visibility.Collapsed;
                 this.MinHeight -= StyleConsts.DELTA_OVERLAY_HEIGHT;
                 this.Height -= StyleConsts.DELTA_OVERLAY_HEIGHT;
             }
             else if (onlyMode == CaptionVisible.Both)
             {
-                // restore
                 TranslatedCaptionCard.Visibility = Visibility.Visible;
                 this.Height += StyleConsts.DELTA_OVERLAY_HEIGHT;
                 this.MinHeight += StyleConsts.DELTA_OVERLAY_HEIGHT;
@@ -364,7 +357,6 @@ namespace LiveCaptionsTranslator
         private void UpdateTranslationColor(SolidColorBrush brush)
         {
             var color = brush.Color;
-
             double target = 0.299 * color.R + 0.587 * color.G + 0.114 * color.B > 127 ? 0 : 255;
             byte r = (byte)Math.Clamp(color.R + (target - color.R) * 0.3, 0, 255);
             byte g = (byte)Math.Clamp(color.G + (target - color.G) * 0.4, 0, 255);

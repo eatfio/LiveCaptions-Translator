@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Interop;
+using System.Runtime.InteropServices;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
@@ -12,6 +14,20 @@ namespace LiveCaptionsTranslator
 {
     public partial class MainWindow : FluentWindow
     {
+        // --- Win32 API 定义：用于注册全局热键 ---
+        [DllImport("user32.dll")]
+        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [DllImport("user32.dll")]
+        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        private const int HOTKEY_ID = 9527;
+        private const uint WM_HOTKEY = 0x0312;
+        private const uint MOD_ALT = 0x0001;
+        private const uint MOD_CONTROL = 0x0002;
+        private const uint VK_H = 0x48; // H 键
+        // ------------------------------------
+
         public OverlayWindow? OverlayWindow { get; set; } = null;
         public bool IsAutoHeight { get; set; } = true;
 
@@ -27,7 +43,13 @@ namespace LiveCaptionsTranslator
                 IsAutoHeight = true;
                 CheckForFirstUse();
                 CheckForUpdates();
+
+                // 在主窗口加载完成后注册热键，这样即使 OverlayWindow 没开也能监听到
+                RegisterGlobalHotKey();
             };
+
+            // 窗口关闭时注销热键
+            Closing += (s, e) => UnregisterGlobalHotKey();
 
             double screenWidth = SystemParameters.PrimaryScreenWidth;
             double screenHeight = SystemParameters.PrimaryScreenHeight;
@@ -46,6 +68,35 @@ namespace LiveCaptionsTranslator
             ShowLogCard(Translator.Setting.MainWindow.CaptionLogEnabled);
         }
 
+        #region 全局热键处理
+
+        private void RegisterGlobalHotKey()
+        {
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+            HwndSource source = HwndSource.FromHwnd(handle);
+            source?.AddHook(HwndHook);
+            RegisterHotKey(handle, HOTKEY_ID, MOD_CONTROL | MOD_ALT, VK_H);
+        }
+
+        private void UnregisterGlobalHotKey()
+        {
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+            UnregisterHotKey(handle, HOTKEY_ID);
+        }
+
+        private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_HOTKEY && wParam.ToInt32() == HOTKEY_ID)
+            {
+                // 当快捷键按下时，直接调用按钮点击逻辑，实现开/关同步
+                OverlayModeButton_Click(OverlayModeButton, new RoutedEventArgs());
+                handled = true;
+            }
+            return IntPtr.Zero;
+        }
+
+        #endregion
+
         private void TopmostButton_Click(object sender, RoutedEventArgs e)
         {
             ToggleTopmost(!this.Topmost);
@@ -58,14 +109,17 @@ namespace LiveCaptionsTranslator
 
             if (OverlayWindow == null)
             {
-                symbolIcon.Symbol = SymbolRegular.ClosedCaption24;
-                symbolIcon.Filled = true;
+                if (symbolIcon != null)
+                {
+                    symbolIcon.Symbol = SymbolRegular.ClosedCaption24;
+                    symbolIcon.Filled = true;
+                }
 
                 OverlayWindow = new OverlayWindow();
                 OverlayWindow.SizeChanged +=
-                    (s, e) => WindowHandler.SaveState(OverlayWindow, Translator.Setting);
+                    (s, ev) => WindowHandler.SaveState(OverlayWindow, Translator.Setting);
                 OverlayWindow.LocationChanged +=
-                    (s, e) => WindowHandler.SaveState(OverlayWindow, Translator.Setting);
+                    (s, ev) => WindowHandler.SaveState(OverlayWindow, Translator.Setting);
 
                 double screenWidth = SystemParameters.PrimaryScreenWidth;
                 double screenHeight = SystemParameters.PrimaryScreenHeight;
@@ -84,8 +138,11 @@ namespace LiveCaptionsTranslator
             }
             else
             {
-                symbolIcon.Symbol = SymbolRegular.ClosedCaptionOff24;
-                symbolIcon.Filled = false;
+                if (symbolIcon != null)
+                {
+                    symbolIcon.Symbol = SymbolRegular.ClosedCaptionOff24;
+                    symbolIcon.Filled = false;
+                }
 
                 switch (OverlayWindow.OnlyMode)
                 {
@@ -145,7 +202,7 @@ namespace LiveCaptionsTranslator
         {
             var button = TopmostButton as Button;
             var symbolIcon = button?.Icon as SymbolIcon;
-            symbolIcon.Filled = enabled;
+            if (symbolIcon != null) symbolIcon.Filled = enabled;
             this.Topmost = enabled;
             Translator.Setting.MainWindow.Topmost = enabled;
         }
@@ -182,7 +239,6 @@ namespace LiveCaptionsTranslator
             {
                 SnackbarHost.Show("[ERROR] Update Check Failed.", ex.Message, SnackbarType.Error,
                     timeout: 2, closeButton: true);
-
                 return;
             }
 
