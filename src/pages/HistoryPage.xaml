@@ -147,14 +147,20 @@
                     <GradientStop Offset="1" Color="Transparent" />
                 </LinearGradientBrush>
             </DataGrid.BorderBrush>
+
+
             <DataGrid.Columns>
+
                 <DataGridTemplateColumn Width="0.4*" Header="Time">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock
-                                Text="{Binding Timestamp}"
-                                TextWrapping="Wrap"
-                                ToolTip="{Binding TimestampFull}" />
+                            <TextBox
+                    Text="{Binding Timestamp}"
+                    TextWrapping="Wrap"
+                    IsReadOnly="True"
+                    BorderThickness="0"
+                    Background="Transparent"
+                    ToolTip="{Binding TimestampFull}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -162,7 +168,12 @@
                 <DataGridTemplateColumn Width="*" Header="Caption">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding SourceText}" TextWrapping="Wrap" />
+                            <TextBox
+                    Text="{Binding SourceText}"
+                    TextWrapping="Wrap"
+                    IsReadOnly="True"
+                    BorderThickness="0"
+                    Background="Transparent" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -170,7 +181,12 @@
                 <DataGridTemplateColumn Width="*" Header="Translated">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding TranslatedText}" TextWrapping="Wrap" />
+                            <TextBox
+                    Text="{Binding TranslatedText}"
+                    TextWrapping="Wrap"
+                    IsReadOnly="True"
+                    BorderThickness="0"
+                    Background="Transparent" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -178,11 +194,18 @@
                 <DataGridTemplateColumn Width="0.3*" Header="API">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding ApiUsed}" TextWrapping="Wrap" />
+                            <TextBox
+                    Text="{Binding ApiUsed}"
+                    TextWrapping="Wrap"
+                    IsReadOnly="True"
+                    BorderThickness="0"
+                    Background="Transparent" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+
             </DataGrid.Columns>
+
         </DataGrid>
     </Grid>
 </Page>
