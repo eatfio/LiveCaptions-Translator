@@ -19,10 +19,10 @@ namespace LiveCaptionsTranslator
             // 首次打开窗口时加载历史数据
             _ = RefreshHistoryAsync();
 
-            // 监听底层翻译完成的事件（只要有新翻译，就会触发刷新）
+            // 监听底层翻译完成的事件
             Translator.TranslationLogged += OnTranslationLogged;
 
-            // 窗口关闭时注销事件，防止后台继续占用资源引发内存泄漏
+            // 窗口关闭时注销事件
             Closed += (s, e) =>
             {
                 Translator.TranslationLogged -= OnTranslationLogged;
@@ -31,7 +31,6 @@ namespace LiveCaptionsTranslator
 
         private void OnTranslationLogged()
         {
-            // 收到新翻译时，在后台刷新列表
             _ = RefreshHistoryAsync();
         }
 
@@ -39,28 +38,41 @@ namespace LiveCaptionsTranslator
         {
             try
             {
-                // 完美复用 HistoryPage.xaml.cs 的数据库读取逻辑
-                // 1 表示第一页，30 表示获取最新 30 条记录（你可以按需把 30 改成 50 或 100）
                 var data = await SQLiteHistoryLogger.LoadHistoryAsync(1, 30, string.Empty);
                 List<TranslationHistoryEntry> historyList = data.Item1;
-
-                // 数据库返回的数据通常是最新记录在最前面。作为悬浮窗，我们习惯最新的消息在最下面，所以反转它
                 historyList.Reverse();
 
                 await Dispatcher.InvokeAsync(() =>
                 {
                     HistoryList.ItemsSource = historyList;
-                    // 数据绑定后，自动滚动到底部
                     HistoryScrollViewer.ScrollToBottom();
                 });
             }
             catch
             {
-                // 捕获异常：防止在多线程高并发读写数据库时导致程序崩溃
+                // 异常保护
             }
         }
 
-        // --- 以下是窗口拖拽与缩放逻辑（与之前保持一致） ---
+        // 新增：点击按钮复制源文本的功能
+        private void CopySourceText_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 获取按钮所在行的内容并复制到剪贴板
+                if (sender is FrameworkElement element && element.DataContext is TranslationHistoryEntry entry)
+                {
+                    if (!string.IsNullOrEmpty(entry.SourceText))
+                    {
+                        Clipboard.SetText(entry.SourceText);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Copy failed: {ex.Message}");
+            }
+        }
 
         private void DragHandle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {

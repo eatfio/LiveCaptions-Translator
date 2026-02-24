@@ -24,6 +24,7 @@
             <Border.Background>
                 <SolidColorBrush Color="Black" Opacity="{Binding Value, ElementName=OpacitySlider}"/>
             </Border.Background>
+
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -49,11 +50,28 @@
                             <DataTemplate>
                                 <Border Margin="0,0,0,10" Padding="8" Background="Transparent" CornerRadius="5">
                                     <StackPanel>
-                                        <TextBox Style="{x:Null}"
-                                                 Text="{Binding SourceText, Mode=OneWay}" 
-                                                 IsReadOnly="True" BorderThickness="0" Background="Transparent" 
-                                                 Foreground="White" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,4"
-                                                 SelectionBrush="#99C9EF" SelectionTextBrush="Black"/>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBox Style="{x:Null}"
+                                                     Text="{Binding SourceText, Mode=OneWay}" 
+                                                     IsReadOnly="True" BorderThickness="0" Background="Transparent" 
+                                                     Foreground="White" FontSize="15" FontWeight="Bold" TextWrapping="Wrap"
+                                                     SelectionBrush="#99C9EF" SelectionTextBrush="Black"
+                                                     VerticalAlignment="Center"/>
+
+                                            <ui:Button Grid.Column="1" 
+                                                       VerticalAlignment="Top"
+                                                       Margin="5,0,0,0"
+                                                       Padding="4"
+                                                       Appearance="Transparent" 
+                                                       Icon="{ui:SymbolIcon Copy24, Filled=False}" 
+                                                       Click="CopySourceText_Click" 
+                                                       ToolTip="Copy Source Text"/>
+                                        </Grid>
 
                                         <TextBox Style="{x:Null}"
                                                  Text="{Binding TranslatedText, Mode=OneWay}" 
