@@ -29,6 +29,8 @@ namespace LiveCaptionsTranslator
         // ------------------------------------
 
         public OverlayWindow? OverlayWindow { get; set; } = null;
+        // 屏蔽防报错：等我们建好新窗口类再取消这里的注释
+        public HistoryOverlayWindow? HistoryOverlayWindow { get; set; } = null; 
         public bool IsAutoHeight { get; set; } = true;
 
         public MainWindow()
@@ -100,6 +102,38 @@ namespace LiveCaptionsTranslator
         private void TopmostButton_Click(object sender, RoutedEventArgs e)
         {
             ToggleTopmost(!this.Topmost);
+        }
+
+        // --- 新增：历史悬浮窗按钮的点击事件 ---
+        private void HistoryOverlayButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            var symbolIcon = button?.Icon as SymbolIcon;
+
+            if (HistoryOverlayWindow == null)
+            {
+                // 变成实心图标
+                if (symbolIcon != null) symbolIcon.Filled = true;
+
+                // 创建并显示新窗口
+                HistoryOverlayWindow = new HistoryOverlayWindow();
+
+                // 如果用户手动关闭了窗口，我们需要把主界面的变量置空、图标变空心
+                HistoryOverlayWindow.Closed += (s, ev) =>
+                {
+                    HistoryOverlayWindow = null;
+                    if (symbolIcon != null) symbolIcon.Filled = false;
+                };
+
+                HistoryOverlayWindow.Show();
+            }
+            else
+            {
+                // 变成空心图标并关闭窗口
+                if (symbolIcon != null) symbolIcon.Filled = false;
+                HistoryOverlayWindow.Close();
+                HistoryOverlayWindow = null;
+            }
         }
 
         private void OverlayModeButton_Click(object sender, RoutedEventArgs e)

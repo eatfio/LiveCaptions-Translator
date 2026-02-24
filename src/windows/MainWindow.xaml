@@ -63,6 +63,17 @@
                             Icon="{ui:SymbolIcon ClosedCaptionOff24,
                                                  Filled=False}"
                             ToolTip="Overlay Window" />
+
+                        <ui:Button
+                            x:Name="HistoryOverlayButton"
+                            Margin="0,0,5,0"
+                            Appearance="Transparent"
+                            Click="HistoryOverlayButton_Click"
+                            Content="S"
+                            FontSize="20"
+                            FontWeight="Bold"
+                            ToolTip="History Overlay Window" />
+
                         <ui:Button
                             x:Name="TopmostButton"
                             Margin="0,0,5,0"
