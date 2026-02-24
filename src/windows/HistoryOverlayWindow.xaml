@@ -24,68 +24,72 @@
             <Border.Background>
                 <SolidColorBrush Color="Black" Opacity="{Binding Value, ElementName=OpacitySlider}"/>
             </Border.Background>
+        </Border>
 
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+        <Grid Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" MouseLeftButtonDown="DragHandle_MouseLeftButtonDown" Background="Transparent" Cursor="SizeAll">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <Grid Grid.Row="0" MouseLeftButtonDown="DragHandle_MouseLeftButtonDown" Background="Transparent" Cursor="SizeAll">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                    <Slider x:Name="OpacitySlider" Grid.Column="1" Width="100" VerticalAlignment="Center" Margin="10,0" 
-                            Minimum="0.0" Maximum="1.0" Value="0.85" ToolTip="Adjust Background Opacity" Cursor="Hand" />
+                <Slider x:Name="OpacitySlider" Grid.Column="1" Width="100" VerticalAlignment="Center" Margin="10,0" 
+                        Minimum="0.0" Maximum="1.0" Value="0.85" ToolTip="Adjust Background Opacity" Cursor="Hand" />
 
-                    <ui:Button Grid.Column="2" Margin="5" Appearance="Transparent" Icon="{ui:SymbolIcon Dismiss24, Filled=False}" Click="CloseButton_Click" ToolTip="Close History"/>
-                </Grid>
+                <ui:Button Grid.Column="2" Margin="5" Appearance="Transparent" 
+                           Foreground="White"
+                           Icon="{ui:SymbolIcon Dismiss24, Filled=False}" Click="CloseButton_Click" ToolTip="Close History"/>
+            </Grid>
 
-                <ScrollViewer x:Name="HistoryScrollViewer" Grid.Row="1" Margin="10,0,10,10" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl x:Name="HistoryList">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Margin="0,0,0,10" Padding="8" Background="Transparent" CornerRadius="5">
-                                    <StackPanel>
-                                        <Grid Margin="0,0,0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBox Style="{x:Null}"
-                                                     Text="{Binding SourceText, Mode=OneWay}" 
-                                                     IsReadOnly="True" BorderThickness="0" Background="Transparent" 
-                                                     Foreground="White" FontSize="15" FontWeight="Bold" TextWrapping="Wrap"
-                                                     SelectionBrush="#99C9EF" SelectionTextBrush="Black"
-                                                     VerticalAlignment="Center"/>
-
-                                            <ui:Button Grid.Column="1" 
-                                                       VerticalAlignment="Top"
-                                                       Margin="5,0,0,0"
-                                                       Padding="4"
-                                                       Appearance="Transparent" 
-                                                       Icon="{ui:SymbolIcon Copy24, Filled=False}" 
-                                                       Click="CopySourceText_Click" 
-                                                       ToolTip="Copy Source Text"/>
-                                        </Grid>
+            <ScrollViewer x:Name="HistoryScrollViewer" Grid.Row="1" Margin="10,0,10,10" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="HistoryList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,10" Padding="8" Background="Transparent" CornerRadius="5">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
                                         <TextBox Style="{x:Null}"
-                                                 Text="{Binding TranslatedText, Mode=OneWay}" 
+                                                 Text="{Binding SourceText, Mode=OneWay}" 
                                                  IsReadOnly="True" BorderThickness="0" Background="Transparent" 
-                                                 Foreground="#E0E0E0" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"
-                                                 SelectionBrush="#99C9EF" SelectionTextBrush="Black"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </Grid>
-        </Border>
+                                                 Foreground="White" FontSize="15" FontWeight="Bold" TextWrapping="Wrap"
+                                                 SelectionBrush="#99C9EF" SelectionTextBrush="Black"
+                                                 VerticalAlignment="Center"/>
+
+                                        <ui:Button Grid.Column="1" 
+                                                   VerticalAlignment="Top"
+                                                   Margin="5,0,0,0"
+                                                   Padding="4"
+                                                   Opacity="1"
+                                                   Appearance="Transparent" 
+                                                   Foreground="White"
+                                                   Icon="{ui:SymbolIcon Copy24, Filled=False}" 
+                                                   Click="CopySourceText_Click" 
+                                                   ToolTip="Copy Source Text"/>
+                                    </Grid>
+
+                                    <TextBox Style="{x:Null}"
+                                             Text="{Binding TranslatedText, Mode=OneWay}" 
+                                             IsReadOnly="True" BorderThickness="0" Background="Transparent" 
+                                             Foreground="#E0E0E0" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"
+                                             SelectionBrush="#99C9EF" SelectionTextBrush="Black"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
 
         <Thumb x:Name="TopThumb" Height="10" VerticalAlignment="Top" Cursor="SizeNS" DragDelta="Thumb_OnDragDelta" Style="{StaticResource TransparentThumbStyle}" />
         <Thumb x:Name="BottomThumb" Height="10" VerticalAlignment="Bottom" Cursor="SizeNS" DragDelta="Thumb_OnDragDelta" Style="{StaticResource TransparentThumbStyle}" />

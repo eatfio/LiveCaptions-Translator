@@ -16,13 +16,10 @@ namespace LiveCaptionsTranslator
         {
             InitializeComponent();
 
-            // 首次打开窗口时加载历史数据
             _ = RefreshHistoryAsync();
 
-            // 监听底层翻译完成的事件
             Translator.TranslationLogged += OnTranslationLogged;
 
-            // 窗口关闭时注销事件
             Closed += (s, e) =>
             {
                 Translator.TranslationLogged -= OnTranslationLogged;
@@ -50,16 +47,14 @@ namespace LiveCaptionsTranslator
             }
             catch
             {
-                // 异常保护
+                // 忽略数据库并发读取异常
             }
         }
 
-        // 新增：点击按钮复制源文本的功能
         private void CopySourceText_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // 获取按钮所在行的内容并复制到剪贴板
                 if (sender is FrameworkElement element && element.DataContext is TranslationHistoryEntry entry)
                 {
                     if (!string.IsNullOrEmpty(entry.SourceText))
