@@ -4,15 +4,14 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.IO;                  // 新增：用于文件读写
-using System.Text.Json;           // 新增：用于解析和保存 JSON 配置
+using System.IO;
+using System.Text.Json;
 
 using LiveCaptionsTranslator.models;
 using LiveCaptionsTranslator.utils;
 
 namespace LiveCaptionsTranslator
 {
-    // 新增：专门用来存放历史窗口设置的小管家类
     public class HistoryWindowConfig
     {
         public double Top { get; set; } = 100;
@@ -24,33 +23,28 @@ namespace LiveCaptionsTranslator
 
     public partial class HistoryOverlayWindow : Window
     {
-        // 新增：配置文件相关的变量
         private const string ConfigFile = "HistoryOverlayConfig.json";
         private HistoryWindowConfig config = new HistoryWindowConfig();
-        private bool isLoaded = false; // 用于防止在窗口初始化时误触发保存
+        private bool isLoaded = false;
 
         public HistoryOverlayWindow()
         {
             InitializeComponent();
 
-            // 1. 读取历史配置
             LoadConfig();
 
-            // 2. 将配置应用到当前窗口
             this.Top = config.Top;
             this.Left = config.Left;
             this.Width = config.Width;
             this.Height = config.Height;
             OpacitySlider.Value = config.Opacity;
 
-            isLoaded = true; // 标记加载完成
+            isLoaded = true;
 
-            // 3. 监听变化，一旦改变立即保存
             this.LocationChanged += (s, e) => SaveConfig();
             this.SizeChanged += (s, e) => SaveConfig();
             OpacitySlider.ValueChanged += (s, e) => SaveConfig();
 
-            // 原有的数据库加载逻辑
             _ = RefreshHistoryAsync();
 
             Translator.TranslationLogged += OnTranslationLogged;
@@ -58,13 +52,10 @@ namespace LiveCaptionsTranslator
             Closed += (s, e) =>
             {
                 Translator.TranslationLogged -= OnTranslationLogged;
-                SaveConfig(); // 窗口关闭时再强制保存一次，确保万无一失
+                SaveConfig();
             };
         }
 
-        // ==========================================
-        // 新增：读取与保存配置的逻辑
-        // ==========================================
         private void LoadConfig()
         {
             try
@@ -74,7 +65,6 @@ namespace LiveCaptionsTranslator
                     string json = File.ReadAllText(ConfigFile);
                     config = JsonSerializer.Deserialize<HistoryWindowConfig>(json) ?? new HistoryWindowConfig();
 
-                    // 安全防护：防止外接显示器拔掉后，窗口定位在屏幕外导致找不到
                     if (config.Left < SystemParameters.VirtualScreenLeft || config.Top < SystemParameters.VirtualScreenTop ||
                         config.Left > SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 50 ||
                         config.Top > SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 50)
@@ -84,12 +74,12 @@ namespace LiveCaptionsTranslator
                     }
                 }
             }
-            catch { } // 如果配置文件损坏或不存在，就不管它，使用默认值
+            catch { }
         }
 
         private void SaveConfig()
         {
-            if (!isLoaded) return; // 窗口还没完全加载完时不保存
+            if (!isLoaded) return;
             try
             {
                 config.Top = this.Top;
@@ -103,12 +93,7 @@ namespace LiveCaptionsTranslator
             }
             catch { }
         }
-        // ==========================================
 
-
-        // ==========================================
-        // 以下为你原本的代码逻辑，一字未改，完美保留
-        // ==========================================
         private void OnTranslationLogged()
         {
             _ = RefreshHistoryAsync();
@@ -151,6 +136,30 @@ namespace LiveCaptionsTranslator
                 System.Diagnostics.Debug.WriteLine($"Copy failed: {ex.Message}");
             }
         }
+
+        // ==========================================
+        // 新增：点击 Ollama 星星按钮的逻辑
+        // ==========================================
+        private void OllamaAction_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is FrameworkElement element && element.DataContext is TranslationHistoryEntry entry)
+                {
+                    if (!string.IsNullOrEmpty(entry.SourceText))
+                    {
+                        // 实例化新窗口，并将原文传入
+                        var ollamaWindow = new OllamaChatWindow(entry.SourceText);
+                        ollamaWindow.Show();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ollama action failed: {ex.Message}");
+            }
+        }
+        // ==========================================
 
         private void DragHandle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {

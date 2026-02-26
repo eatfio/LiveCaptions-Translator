@@ -1,4 +1,4 @@
-<Window
+﻿<Window
     x:Class="LiveCaptionsTranslator.HistoryOverlayWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -66,16 +66,26 @@
                                                  SelectionBrush="#99C9EF" SelectionTextBrush="Black"
                                                  VerticalAlignment="Center"/>
 
-                                        <ui:Button Grid.Column="1" 
-                                                   VerticalAlignment="Top"
-                                                   Margin="5,0,0,0"
-                                                   Padding="4"
-                                                   Opacity="1"
-                                                   Appearance="Transparent" 
-                                                   Foreground="White"
-                                                   Icon="{ui:SymbolIcon Copy24, Filled=False}" 
-                                                   Click="CopySourceText_Click" 
-                                                   ToolTip="Copy Source Text"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="5,0,0,0">
+
+                                            <ui:Button Padding="4"
+                                                       Opacity="1"
+                                                       Appearance="Transparent" 
+                                                       Foreground="White"
+                                                       Icon="{ui:SymbolIcon Copy24, Filled=False}" 
+                                                       Click="CopySourceText_Click" 
+                                                       ToolTip="Copy Source Text"
+                                                       Margin="0,0,0,5"/>
+
+                                            <ui:Button Padding="4"
+                                                       Opacity="1"
+                                                       Appearance="Transparent" 
+                                                       Foreground="White"
+                                                       Icon="{ui:SymbolIcon Sparkle24, Filled=False}" 
+                                                       Click="OllamaAction_Click" 
+                                                       ToolTip="Send to Ollama AI"/>
+
+                                        </StackPanel>
                                     </Grid>
 
                                     <TextBox Style="{x:Null}"
