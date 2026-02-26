@@ -27,6 +27,11 @@ namespace LiveCaptionsTranslator
         private HistoryWindowConfig config = new HistoryWindowConfig();
         private bool isLoaded = false;
 
+        // ==========================================
+        // 新增：用于记住当前打开的 Anki 制卡助手窗口
+        // ==========================================
+        private OllamaChatWindow? _currentOllamaWindow = null;
+
         public HistoryOverlayWindow()
         {
             InitializeComponent();
@@ -53,6 +58,12 @@ namespace LiveCaptionsTranslator
             {
                 Translator.TranslationLogged -= OnTranslationLogged;
                 SaveConfig();
+
+                // 历史窗口关闭时，如果 Anki 助手还开着，也顺手把它关掉
+                if (_currentOllamaWindow != null && _currentOllamaWindow.IsLoaded)
+                {
+                    _currentOllamaWindow.Close();
+                }
             };
         }
 
@@ -115,7 +126,6 @@ namespace LiveCaptionsTranslator
             }
             catch
             {
-                // 忽略数据库并发读取异常
             }
         }
 
@@ -138,7 +148,7 @@ namespace LiveCaptionsTranslator
         }
 
         // ==========================================
-        // 新增：点击 Ollama 星星按钮的逻辑
+        // 修改：点击 Ollama 星星按钮的逻辑 (防止多开窗口)
         // ==========================================
         private void OllamaAction_Click(object sender, RoutedEventArgs e)
         {
@@ -148,9 +158,31 @@ namespace LiveCaptionsTranslator
                 {
                     if (!string.IsNullOrEmpty(entry.SourceText))
                     {
-                        // 实例化新窗口，并将原文传入
-                        var ollamaWindow = new OllamaChatWindow(entry.SourceText);
-                        ollamaWindow.Show();
+                        // 判断窗口是不是还没开，或者已经被你随手关掉了
+                        if (_currentOllamaWindow == null || !_currentOllamaWindow.IsLoaded)
+                        {
+                            // 新建一个窗口
+                            _currentOllamaWindow = new OllamaChatWindow(entry.SourceText);
+
+                            // 监听：如果这个窗口被关了，就把记录清空
+                            _currentOllamaWindow.Closed += (s, args) => _currentOllamaWindow = null;
+
+                            _currentOllamaWindow.Show();
+                        }
+                        else
+                        {
+                            // 核心逻辑：窗口已经开着！直接把新的原文塞进它的文本框里
+                            _currentOllamaWindow.SourceTextBox.Text = entry.SourceText;
+
+                            // 如果窗口被最小化了，把它恢复成正常大小
+                            if (_currentOllamaWindow.WindowState == WindowState.Minimized)
+                            {
+                                _currentOllamaWindow.WindowState = WindowState.Normal;
+                            }
+
+                            // 强制把窗口提到所有软件的最前面让你看到
+                            _currentOllamaWindow.Activate();
+                        }
                     }
                 }
             }
