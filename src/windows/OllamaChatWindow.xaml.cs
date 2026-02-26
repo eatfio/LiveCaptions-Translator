@@ -8,21 +8,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace LiveCaptionsTranslator
 {
-    // ==========================================
-    // 扩充管家类：增加语言、牌型、位置、尺寸的记忆插槽
-    // ==========================================
     public class OllamaChatSettings
     {
         public string ModelName { get; set; } = "qwen2.5:7b";
         public string PromptText { get; set; } = "你是一名专业的意大利语翻译与语言学习专家，熟悉意大利语口语表达、语法结构和高频词汇。\n\n我提供影视剧字幕中的单条意大利语句子。\n\n请严格按照以下格式输出：\n正面：(这里填入外语原文或者提炼出的生词)\n反面：(这里填入精准的中文翻译，以及语法或俚语解释)\n\n原文内容：\n{text}";
 
-        public int LanguageIndex { get; set; } = 3; // 默认 3 (意大利语)
-        public int CardTypeIndex { get; set; } = 1; // 默认 1 (Basic and reversed)
+        public int LanguageIndex { get; set; } = 3;
+        public int CardTypeIndex { get; set; } = 1;
 
         public double Top { get; set; } = double.NaN;
         public double Left { get; set; } = double.NaN;
@@ -40,7 +38,7 @@ namespace LiveCaptionsTranslator
         private CancellationTokenSource? _cts;
         private bool _isGenerating = false;
         private DispatcherTimer _typingTimer;
-        private bool _isLoaded = false; // 用于防止窗口初始化时误触发保存
+        private bool _isLoaded = false;
 
         private MediaPlayer _audioPlayer = new MediaPlayer();
 
@@ -48,20 +46,16 @@ namespace LiveCaptionsTranslator
         {
             InitializeComponent();
 
-            // 1. 读取历史记忆
             LoadConfig();
 
-            // 2. 将记忆应用到界面元素
             ModelTextBox.Text = config.ModelName;
             PromptTextBox.Text = config.PromptText;
             SourceTextBox.Text = sourceText;
             LangComboBox.SelectedIndex = config.LanguageIndex;
             CardTypeComboBox.SelectedIndex = config.CardTypeIndex;
 
-            // 3. 将记忆应用到窗口位置与大小
             if (!double.IsNaN(config.Top) && !double.IsNaN(config.Left))
             {
-                // 如果有历史位置记录，则取消居中，使用自定义位置
                 this.WindowStartupLocation = WindowStartupLocation.Manual;
                 this.Top = config.Top;
                 this.Left = config.Left;
@@ -69,16 +63,14 @@ namespace LiveCaptionsTranslator
             this.Width = config.Width;
             this.Height = config.Height;
 
-            _isLoaded = true; // 标记初始化完成，允许保存
+            _isLoaded = true;
 
-            // 4. 监听所有的变化：位置、大小、下拉框选项改变时，立刻存档
             this.LocationChanged += (s, e) => SaveConfig();
             this.SizeChanged += (s, e) => SaveConfig();
             LangComboBox.SelectionChanged += (s, e) => SaveConfig();
             CardTypeComboBox.SelectionChanged += (s, e) => SaveConfig();
             this.Closed += (s, e) => SaveConfig();
 
-            // 5. 初始化打字防抖计时器
             _typingTimer = new DispatcherTimer();
             _typingTimer.Interval = TimeSpan.FromMilliseconds(800);
             _typingTimer.Tick += TypingTimer_Tick;
@@ -114,7 +106,6 @@ namespace LiveCaptionsTranslator
                     string json = File.ReadAllText(ConfigFile);
                     config = JsonSerializer.Deserialize<OllamaChatSettings>(json) ?? new OllamaChatSettings();
 
-                    // 安全防护：防止多屏幕断开后窗口跑到屏幕外
                     if (!double.IsNaN(config.Left) && !double.IsNaN(config.Top))
                     {
                         if (config.Left < SystemParameters.VirtualScreenLeft || config.Top < SystemParameters.VirtualScreenTop ||
@@ -132,7 +123,7 @@ namespace LiveCaptionsTranslator
 
         private void SaveConfig()
         {
-            if (!_isLoaded) return; // 界面还没完全画好前，不要瞎存
+            if (!_isLoaded) return;
             try
             {
                 config.ModelName = ModelTextBox.Text.Trim();
@@ -232,7 +223,7 @@ namespace LiveCaptionsTranslator
                         GenerateBtn.Foreground = Brushes.White;
                     });
                 }
-                SaveConfig(); // 生成完毕顺便再保存一次
+                SaveConfig();
             }
         }
 
@@ -337,6 +328,29 @@ namespace LiveCaptionsTranslator
                 AnkiBtn.IsEnabled = true;
                 AnkiBtn.Content = "一键传给 Anki";
                 AnkiBtn.Foreground = Brushes.White;
+            }
+        }
+
+        // ==========================================
+        // 鼠标中键一键替换为 _ (智能保留标点与空格)
+        // ==========================================
+        private void ResponseTextBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Middle && e.ButtonState == MouseButtonState.Pressed)
+            {
+                if (ResponseTextBox.SelectionLength > 0)
+                {
+                    // 获取当前选中的原始文本
+                    string originalText = ResponseTextBox.SelectedText;
+
+                    // 使用正则表达式，仅仅将 a到z 以及 A到Z 替换为下划线，其余符号一律保留
+                    string newText = Regex.Replace(originalText, "[a-zA-Z]", "_");
+
+                    // 将处理好的字符串替换回去
+                    ResponseTextBox.SelectedText = newText;
+
+                    e.Handled = true;
+                }
             }
         }
     }

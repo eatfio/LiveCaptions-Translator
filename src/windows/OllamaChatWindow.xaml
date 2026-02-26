@@ -49,8 +49,9 @@
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
-				<TextBlock Grid.Row="0" Text="Ollama 实时回复 (你可以随时在这里修改制卡内容)：" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,5"/>
-				<TextBox x:Name="ResponseTextBox" Style="{x:Null}" AcceptsReturn="True" Grid.Row="1" IsReadOnly="False" TextWrapping="Wrap" Background="Transparent" Foreground="#E0E0E0" BorderThickness="0" FontSize="14" VerticalScrollBarVisibility="Auto"/>
+				<TextBlock Grid.Row="0" Text="Ollama 实时回复 (选中文本后点击鼠标中键可替换为 _)：" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,5"/>
+				<TextBox x:Name="ResponseTextBox" Style="{x:Null}" AcceptsReturn="True" Grid.Row="1" IsReadOnly="False" TextWrapping="Wrap" Background="Transparent" Foreground="#E0E0E0" BorderThickness="0" FontSize="14" VerticalScrollBarVisibility="Auto"
+                         PreviewMouseDown="ResponseTextBox_PreviewMouseDown"/>
 			</Grid>
 		</Border>
 
