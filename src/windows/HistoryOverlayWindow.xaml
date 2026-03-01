@@ -8,7 +8,9 @@
     MinWidth="300" MinHeight="200"
     AllowsTransparency="True" Background="Transparent"
     WindowStyle="None" Topmost="True" ShowInTaskbar="False"
-    Top="100" Left="100">
+    Top="100" Left="100"
+    MouseEnter="Window_MouseEnter"
+    MouseLeave="Window_MouseLeave">
 
     <Window.Resources>
         <Style x:Key="TransparentThumbStyle" TargetType="Thumb">
@@ -19,7 +21,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Grid Background="Transparent">
         <Border x:Name="BorderBackground" Margin="5" CornerRadius="8">
             <Border.Background>
                 <SolidColorBrush Color="Black" Opacity="{Binding Value, ElementName=OpacitySlider}"/>

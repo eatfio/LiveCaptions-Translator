@@ -6,6 +6,9 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.IO;
 using System.Text.Json;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
+using System.Runtime.InteropServices; // 新增：引入底层交互支持
 
 using LiveCaptionsTranslator.models;
 using LiveCaptionsTranslator.utils;
@@ -27,10 +30,26 @@ namespace LiveCaptionsTranslator
         private HistoryWindowConfig config = new HistoryWindowConfig();
         private bool isLoaded = false;
 
-        // ==========================================
-        // 新增：用于记住当前打开的 Anki 制卡助手窗口
-        // ==========================================
         private OllamaChatWindow? _currentOllamaWindow = null;
+
+        private enum DockPosition { None, Top, Left, Right }
+        private DockPosition _dockPosition = DockPosition.None;
+        private bool _isHidden = false;
+        private DispatcherTimer _hideDockTimer;
+
+        // ==========================================
+        // 引入底层 Win32 API，用来获取最精确的物理鼠标位置
+        // ==========================================
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
 
         public HistoryOverlayWindow()
         {
@@ -44,11 +63,27 @@ namespace LiveCaptionsTranslator
             this.Height = config.Height;
             OpacitySlider.Value = config.Opacity;
 
+            _hideDockTimer = new DispatcherTimer();
+            _hideDockTimer.Interval = TimeSpan.FromMilliseconds(300);
+            _hideDockTimer.Tick += (s, e) =>
+            {
+                // 核心防闪烁拦截：如果鼠标实际上还在窗口里面，直接无视并打断隐藏动作！
+                if (!IsMouseTrulyOutside())
+                {
+                    return; // 保留定时器，下次继续检查，直到鼠标真的离开
+                }
+
+                _hideDockTimer.Stop();
+                PerformHide();
+            };
+
             isLoaded = true;
 
             this.LocationChanged += (s, e) => SaveConfig();
             this.SizeChanged += (s, e) => SaveConfig();
             OpacitySlider.ValueChanged += (s, e) => SaveConfig();
+
+            this.Loaded += (s, e) => CheckDocking();
 
             _ = RefreshHistoryAsync();
 
@@ -59,12 +94,35 @@ namespace LiveCaptionsTranslator
                 Translator.TranslationLogged -= OnTranslationLogged;
                 SaveConfig();
 
-                // 历史窗口关闭时，如果 Anki 助手还开着，也顺手把它关掉
                 if (_currentOllamaWindow != null && _currentOllamaWindow.IsLoaded)
                 {
                     _currentOllamaWindow.Close();
                 }
             };
+        }
+
+        // ==========================================
+        // 精准判断鼠标是否“真的”离开了窗口范围
+        // ==========================================
+        private bool IsMouseTrulyOutside()
+        {
+            if (GetCursorPos(out POINT pt))
+            {
+                PresentationSource source = PresentationSource.FromVisual(this);
+                if (source != null && source.CompositionTarget != null)
+                {
+                    // 考虑缩放比例（DPI），将物理像素转换为 WPF 逻辑像素
+                    Point logicalPoint = source.CompositionTarget.TransformFromDevice.Transform(new Point(pt.X, pt.Y));
+
+                    // 增加 2 像素的容错缓冲带
+                    if (logicalPoint.X >= this.Left - 2 && logicalPoint.X <= this.Left + this.Width + 2 &&
+                        logicalPoint.Y >= this.Top - 2 && logicalPoint.Y <= this.Top + this.Height + 2)
+                    {
+                        return false; // 鼠标明明还在里面！
+                    }
+                }
+            }
+            return true; // 鼠标真的走了
         }
 
         private void LoadConfig()
@@ -93,8 +151,20 @@ namespace LiveCaptionsTranslator
             if (!isLoaded) return;
             try
             {
-                config.Top = this.Top;
-                config.Left = this.Left;
+                double saveTop = this.Top;
+                double saveLeft = this.Left;
+
+                // 保存时还原准确的边缘坐标
+                if (_isHidden)
+                {
+                    var workArea = SystemParameters.WorkArea;
+                    if (_dockPosition == DockPosition.Top) saveTop = workArea.Top;
+                    if (_dockPosition == DockPosition.Left) saveLeft = workArea.Left;
+                    if (_dockPosition == DockPosition.Right) saveLeft = workArea.Right - this.Width;
+                }
+
+                config.Top = saveTop;
+                config.Left = saveLeft;
                 config.Width = this.Width;
                 config.Height = this.Height;
                 config.Opacity = OpacitySlider.Value;
@@ -147,9 +217,6 @@ namespace LiveCaptionsTranslator
             }
         }
 
-        // ==========================================
-        // 修改：点击 Ollama 星星按钮的逻辑 (防止多开窗口)
-        // ==========================================
         private void OllamaAction_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -158,29 +225,19 @@ namespace LiveCaptionsTranslator
                 {
                     if (!string.IsNullOrEmpty(entry.SourceText))
                     {
-                        // 判断窗口是不是还没开，或者已经被你随手关掉了
                         if (_currentOllamaWindow == null || !_currentOllamaWindow.IsLoaded)
                         {
-                            // 新建一个窗口
                             _currentOllamaWindow = new OllamaChatWindow(entry.SourceText);
-
-                            // 监听：如果这个窗口被关了，就把记录清空
                             _currentOllamaWindow.Closed += (s, args) => _currentOllamaWindow = null;
-
                             _currentOllamaWindow.Show();
                         }
                         else
                         {
-                            // 核心逻辑：窗口已经开着！直接把新的原文塞进它的文本框里
                             _currentOllamaWindow.SourceTextBox.Text = entry.SourceText;
-
-                            // 如果窗口被最小化了，把它恢复成正常大小
                             if (_currentOllamaWindow.WindowState == WindowState.Minimized)
                             {
                                 _currentOllamaWindow.WindowState = WindowState.Normal;
                             }
-
-                            // 强制把窗口提到所有软件的最前面让你看到
                             _currentOllamaWindow.Activate();
                         }
                     }
@@ -191,12 +248,22 @@ namespace LiveCaptionsTranslator
                 System.Diagnostics.Debug.WriteLine($"Ollama action failed: {ex.Message}");
             }
         }
-        // ==========================================
 
         private void DragHandle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                this.BeginAnimation(Window.LeftProperty, null);
+                this.BeginAnimation(Window.TopProperty, null);
+
+                _hideDockTimer.Stop();
+                _isHidden = false;
+                _dockPosition = DockPosition.None;
+
                 this.DragMove();
+
+                CheckDocking();
+            }
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -207,6 +274,8 @@ namespace LiveCaptionsTranslator
         private void Thumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
             if (sender is not Thumb thumb) return;
+
+            _dockPosition = DockPosition.None;
 
             double newWidth = this.Width;
             double newHeight = this.Height;
@@ -242,6 +311,97 @@ namespace LiveCaptionsTranslator
                 this.Height = newHeight;
                 this.Top = newTop;
             }
+        }
+
+        private void CheckDocking()
+        {
+            this.BeginAnimation(Window.LeftProperty, null);
+            this.BeginAnimation(Window.TopProperty, null);
+
+            var workArea = SystemParameters.WorkArea;
+            double edgeTolerance = 30;
+
+            // 恢复最精确的完美贴合
+            if (this.Top <= workArea.Top + edgeTolerance)
+            {
+                _dockPosition = DockPosition.Top;
+                this.Top = workArea.Top;
+            }
+            else if (this.Left <= workArea.Left + edgeTolerance)
+            {
+                _dockPosition = DockPosition.Left;
+                this.Left = workArea.Left;
+            }
+            else if (this.Left + this.Width >= workArea.Right - edgeTolerance)
+            {
+                _dockPosition = DockPosition.Right;
+                this.Left = workArea.Right - this.Width;
+            }
+            else
+            {
+                _dockPosition = DockPosition.None;
+            }
+        }
+
+        private void Window_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (_dockPosition != DockPosition.None && !_isHidden)
+            {
+                // WPF 说鼠标离开了，但我们用定时器作为防抖
+                // 300 毫秒后，由底层的 IsMouseTrulyOutside 来最后把关！
+                _hideDockTimer.Start();
+            }
+        }
+
+        private void Window_MouseEnter(object sender, MouseEventArgs e)
+        {
+            // 鼠标一旦移入，立刻打断隐藏倒计时
+            _hideDockTimer.Stop();
+
+            if (_dockPosition != DockPosition.None && _isHidden)
+            {
+                PerformShow();
+            }
+        }
+
+        private void PerformHide()
+        {
+            if (_dockPosition == DockPosition.None || _isHidden) return;
+            _isHidden = true;
+
+            var workArea = SystemParameters.WorkArea;
+            double hiddenOffset = 15;
+
+            if (_dockPosition == DockPosition.Top)
+                AnimateWindow(Window.TopProperty, workArea.Top - this.Height + hiddenOffset);
+            else if (_dockPosition == DockPosition.Left)
+                AnimateWindow(Window.LeftProperty, workArea.Left - this.Width + hiddenOffset);
+            else if (_dockPosition == DockPosition.Right)
+                AnimateWindow(Window.LeftProperty, workArea.Right - hiddenOffset);
+        }
+
+        private void PerformShow()
+        {
+            if (_dockPosition == DockPosition.None || !_isHidden) return;
+            _isHidden = false;
+
+            var workArea = SystemParameters.WorkArea;
+
+            if (_dockPosition == DockPosition.Top)
+                AnimateWindow(Window.TopProperty, workArea.Top);
+            else if (_dockPosition == DockPosition.Left)
+                AnimateWindow(Window.LeftProperty, workArea.Left);
+            else if (_dockPosition == DockPosition.Right)
+                AnimateWindow(Window.LeftProperty, workArea.Right - this.Width);
+        }
+
+        private void AnimateWindow(DependencyProperty prop, double toValue)
+        {
+            DoubleAnimation anim = new DoubleAnimation(toValue, TimeSpan.FromMilliseconds(250))
+            {
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+            this.BeginAnimation(prop, anim);
         }
     }
 }
