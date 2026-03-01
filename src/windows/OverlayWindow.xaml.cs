@@ -31,6 +31,13 @@ namespace LiveCaptionsTranslator
         };
         private CaptionVisible onlyMode = CaptionVisible.Both;
 
+        // ==========================================
+        // 新增：自动隐藏的计时器与文字记忆变量
+        // ==========================================
+        private DispatcherTimer _hideSubtitleTimer;
+        private string _lastOriginalText = "";
+        private string _lastTranslatedText = "";
+
         public CaptionVisible OnlyMode
         {
             get => onlyMode;
@@ -45,6 +52,22 @@ namespace LiveCaptionsTranslator
         public OverlayWindow()
         {
             InitializeComponent();
+
+            // ==========================================
+            // 初始化 8 秒自动隐藏定时器
+            // ==========================================
+            _hideSubtitleTimer = new DispatcherTimer();
+            _hideSubtitleTimer.Interval = TimeSpan.FromSeconds(8); // 设置为 8 秒
+            _hideSubtitleTimer.Tick += (s, e) =>
+            {
+                _hideSubtitleTimer.Stop(); // 倒计时结束，停止计时
+
+                // 隐藏黑底并折叠文本面板，完美保留历史记录！
+                BorderBackground.Visibility = Visibility.Hidden; // 背景设为Hidden保留物理占位，方便鼠标滑过唤醒
+                TranslatedCaptionCard.Visibility = Visibility.Collapsed;
+                OriginalCaptionCard.Visibility = Visibility.Collapsed;
+            };
+
             DataContext = Translator.Caption;
 
             // 设置默认只显示原字幕
@@ -148,16 +171,66 @@ namespace LiveCaptionsTranslator
         private void TranslatedChanged(object sender, PropertyChangedEventArgs e)
         {
             ApplyFontSize();
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                // 仅当原文或译文有推送信号时检查
+                if (e.PropertyName == "OverlayCurrentTranslation" || e.PropertyName == "OverlayOriginalCaption")
+                {
+                    // 获取当前界面上的真实文字内容
+                    string currentOriginal = OriginalCaption.Text ?? "";
+                    string currentTranslated = (NoticePrefixRun.Text ?? "") + (PreviousTranslationRun.Text ?? "") + (CurrentTranslationRun.Text ?? "");
+
+                    // ==========================================
+                    // 核心逻辑：只有文字内容实质性改变时，才重置倒计时！
+                    // ==========================================
+                    if (currentOriginal != _lastOriginalText || currentTranslated != _lastTranslatedText)
+                    {
+                        _lastOriginalText = currentOriginal;
+                        _lastTranslatedText = currentTranslated;
+
+                        // 恢复背景框的显示
+                        BorderBackground.Visibility = Visibility.Visible;
+
+                        // 根据当前的显示模式 (OnlyMode) 决定恢复哪个文本框
+                        if (onlyMode == CaptionVisible.Both || onlyMode == CaptionVisible.SubtitleOnly)
+                            OriginalCaptionCard.Visibility = Visibility.Visible;
+
+                        if (onlyMode == CaptionVisible.Both || onlyMode == CaptionVisible.TranslationOnly)
+                            TranslatedCaptionCard.Visibility = Visibility.Visible;
+
+                        // 重新开始 8 秒计时
+                        _hideSubtitleTimer.Stop();
+                        _hideSubtitleTimer.Start();
+                    }
+                }
+            }), DispatcherPriority.Background);
         }
 
         private void Window_MouseEnter(object sender, MouseEventArgs e)
         {
             ControlPanel.Visibility = Visibility.Visible;
+
+            // ==========================================
+            // 鼠标移入悬浮窗：停止倒计时，并强制显示当前字幕和背景
+            // ==========================================
+            _hideSubtitleTimer.Stop();
+            BorderBackground.Visibility = Visibility.Visible;
+
+            if (onlyMode == CaptionVisible.Both || onlyMode == CaptionVisible.SubtitleOnly)
+                OriginalCaptionCard.Visibility = Visibility.Visible;
+            if (onlyMode == CaptionVisible.Both || onlyMode == CaptionVisible.TranslationOnly)
+                TranslatedCaptionCard.Visibility = Visibility.Visible;
         }
 
         private void Window_MouseLeave(object sender, MouseEventArgs e)
         {
             ControlPanel.Visibility = Visibility.Hidden;
+
+            // ==========================================
+            // 鼠标离开悬浮窗：重新开始 8 秒倒计时
+            // ==========================================
+            _hideSubtitleTimer.Start();
         }
 
         private void FontIncrease_Click(object sender, RoutedEventArgs e)
